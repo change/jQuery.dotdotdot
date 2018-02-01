@@ -147,7 +147,7 @@
 
             ).on(
                 'destroy.dot',
-                function(e) {
+                function(e, fn) {
                     e.preventDefault();
                     e.stopPropagation();
 
@@ -160,6 +160,10 @@
                         .attr('style', $dot.data('dotdotdot-style') || '')
                         .removeClass('is-truncated')
                         .data('dotdotdot', false);
+
+                    if (typeof fn == 'function') {
+                        fn.call($dot[0]);
+                    }
                 }
             );
             return $dot;
@@ -321,6 +325,12 @@
                     var e = this,
                         $e = $(e);
 
+                    var addAfter = function(elem) {
+                      if (after) {
+                        elem[elem.is(notx) ? 'after' : 'append'](after);
+                      }
+                    };
+
                     if (typeof e == 'undefined') {
                         return true;
                     } else if ($e.is(noty)) {
@@ -329,9 +339,7 @@
                         return true;
                     } else {
                         $elem.append($e);
-                        if (after && !$e.is(o.after) && !$e.find(o.after).length) {
-                            $elem[$elem.is(notx) ? 'after' : 'append'](after);
-                        }
+                        addAfter($elem);
                         if (test($i, o)) {
                             if (e.nodeType == 3) // node is TEXT
                             {
@@ -341,10 +349,18 @@
                             }
                         }
 
-                        if (!isTruncated) {
-                            if (after) {
-                                after.detach();
+                        if (after && !isTruncated) {
+                            // force truncation of last text node within $e
+                            var lastTextNode = findLastTextNode($e, $d);
+                            if (lastTextNode) ellipsisElement($(lastTextNode), $d, $i, o, after);
+
+                            // if $e contains that last text node, then we want after link immediately after it
+                            if ($.contains($e[0], lastTextNode)) {
+                              addAfter($e);
+                            } else {
+                              addAfter($elem);
                             }
+                            isTruncated = true;
                         }
                     }
                 }
